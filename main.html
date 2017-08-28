@@ -26,7 +26,7 @@
             }
         });
 
-        function addStudent() {
+        function add_student() {
             let name = $('#exampleInputName').val();
             let id = $('#exampleInputId').val();
             let klass = $('#exampleInputClass').val() === "" ? -1 : +$('#exampleInputClass').val();
@@ -245,16 +245,17 @@ ${name}:${id}
                 $('#exampleUpdateProgram').focus();
                 return;
             }
-            $(student_need_update.dom).html(`<td>${id}</td><td>${name}</td><td>${klass}</td><td>${nat}</td><td>${chinese}</td><td>${math}</td><td>${english}</td><td>${program}</td>`);
+            console.log($(student_need_update.dom).html());
+            let new_dom=$(student_need_update.dom).html(`<td>${id}</td><td>${name}</td><td>${klass}</td><td>${nat}</td><td>${chinese}</td><td>${math}</td><td>${english}</td><td>${program}</td>`);
             let ddom = $(`<td><button type="button" class="btn btn-sm btn-info">删除</button></td>`);
             let cdom = $(`<td><button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#myModal3">
     修改
 </button></td>`);
             ddom.click(function () {
-                deleteStudentButton(student_need_update.dom);
+                deleteStudentButton(new_dom);
             });
             cdom.click(function () {
-                updateStudent(student_need_update.dom);
+                updateStudent(new_dom);
             });
             $(student_need_update.dom).append(cdom);
             $(student_need_update.dom).append(ddom);
@@ -376,7 +377,7 @@ ${name}:${id}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="addStudent()">添加学生</button>
+                    <button type="button" class="btn btn-primary" onclick="add_student()">添加学生</button>
                 </div>
             </form>
         </div>
