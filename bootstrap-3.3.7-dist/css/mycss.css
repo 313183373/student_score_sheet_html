@@ -1,0 +1,15 @@
+.score-sheet{
+    text-align: center;
+}
+
+.sheet-title{
+    font-size:50px;
+    text-align: center;
+}
+.sheet-head{
+    font-weight:bold;
+}
+
+.add-student , .select-student, .update-student{
+    margin-left:20px;
+}

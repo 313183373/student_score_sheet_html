@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Score Sheet</title>
+    <link rel="stylesheet" href="./bootstrap-3.3.7-dist/css/bootstrap.css">
+    <link rel="stylesheet" href="./bootstrap-3.3.7-dist/css/mycss.css">
+    <script src="./jquery-3.2.1.min.js"></script>
+    <script src="./bootstrap-3.3.7-dist/js/bootstrap.js"></script>
+    <script type="text/javascript">
+        let student_need_update;
+
+        const nation = [
+            "汉族", "壮族", "满族", "回族", "苗族", "维吾尔族", "土家族", "彝族", "蒙古族", "藏族", "布依族", "侗族", "瑶族", "朝鲜族", "白族", "哈尼族",
+            "哈萨克族", "黎族", "傣族", "畲族", "傈僳族", "仡佬族", "东乡族", "高山族", "拉祜族", "水族", "佤族", "纳西族", "羌族", "土族", "仫佬族", "锡伯族",
+            "柯尔克孜族", "达斡尔族", "景颇族", "毛南族", "撒拉族", "布朗族", "塔吉克族", "阿昌族", "普米族", "鄂温克族", "怒族", "京族", "基诺族", "德昂族", "保安族",
+            "俄罗斯族", "裕固族", "乌孜别克族", "门巴族", "鄂伦春族", "独龙族", "塔塔尔族", "赫哲族", "珞巴族"
+        ];
+        $(function () {
+            for (let i = 0; i < nation.length; i++) {
+                $('#exampleInputNation').append(`<option value="${i}">${nation[i]}</option>`);
+                $('#exampleUpdateNation').append(`<option value="${i}">${nation[i]}</option>`);
+            }
+            if (localStorage.list) {
+                studentList = JSON.parse(localStorage.list);
+            }
+        });
+
+        function addStudent() {
+            let name = $('#exampleInputName').val();
+            let id = $('#exampleInputId').val();
+            let klass = $('#exampleInputClass').val() === "" ? -1 : +$('#exampleInputClass').val();
+            let nat = nation[$('#exampleInputNation').val()];
+            let chinese = $('#exampleInputChinese').val() === "" ? -1 : +$('#exampleInputChinese').val();
+            let math = $('#exampleInputMath').val() === "" ? -1 : +$('#exampleInputMath').val();
+            let english = $('#exampleInputEnglish').val() === "" ? -1 : +$('#exampleInputEnglish').val();
+            let program = $('#exampleInputProgram').val() === "" ? -1 : +$('#exampleInputProgram').val();
+            if (name === "") {
+                alert('学生姓名不能为空');
+                $('#exampleInputName').focus();
+                return
+            }
+            if (check_id(id)) {
+                if (check_same_id(id)) {
+                    alert(`学生学号重复，请检查!`);
+                    $('#exampleInputId').focus();
+                    return
+                }
+            }
+            else {
+                alert(`学生学号输入错误：${id},请输入4位数字`);
+                $('#exampleInputId').focus();
+                return
+            }
+            if (chinese < 0 || chinese > 100) {
+                alert(`语文成绩输入错误，成绩应该是0-100之间`);
+                $('#exampleInputChinese').focus();
+                return;
+            }
+            if (math < 0 || math > 100) {
+                alert(`数学成绩输入错误，成绩应该是0-100之间`);
+                $('#exampleInputMath').focus();
+                return;
+            }
+            if (english < 0 || english > 100) {
+                alert(`英语成绩输入错误，成绩应该是0-100之间`);
+                $('#exampleInputEnglish').focus();
+                return;
+            }
+            if (program < 0 || program > 100) {
+                alert(`编程成绩输入错误，成绩应该是0-100之间`);
+                $('#exampleInputProgram').focus();
+                return;
+            }
+            addList(name, id, nat, klass, chinese, math, english, program);
+            $('#student_info .modal-footer button:first-child').click();
+        }
+
+        function get_ids() {
+            if (studentList.length > 0) {
+                let ids = $('#exampleSelectId').val();
+                if (ids === '') {
+                    let average = 0, middle, cnt = 0;
+                    let temp = [];
+                    clear_sheet();
+                    studentList.forEach(value => {
+                        average += value.total;
+                        temp.push(value);
+                        cnt++;
+                        let dom = $(`<tr><td>${value.id}</td><td>${value.name}</td><td>${value.klass}</td><td>${value.nation}</td><td>${value.chinese}</td><td>${value.math}</td><td>${value.english}</td><td>${value.program}</td></tr>`);
+                        let ddom = $(`<td><button type="button" class="btn btn-sm btn-info">删除</button></td>`);
+                        let cdom = $(`<td><button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#myModal3">
+    修改
+</button></td>`);
+                        ddom.click(function () {
+                            deleteStudentButton(dom);
+                        });
+                        cdom.click(function () {
+                            updateStudent(dom);
+                        });
+                        dom.append(cdom);
+                        dom.append(ddom);
+                        $('#score-sheet').append(dom);
+                    });
+                    temp.sort((a, b) => a.total - b.total);
+                    if (temp.length & 1) {
+                        middle = temp[Math.floor(temp.length / 2)].total;
+                    } else {
+                        middle = (temp[temp.length / 2].total + temp[temp.length / 2 - 1].total) / 2;
+                    }
+                    $('#score-sheet').append(`<tr><td colspan="5">总分平均分:${(average / cnt).toFixed(2)}</td><td colspan="5">总分中位数:${middle.toFixed(2)}</td></tr>`)
+                } else if (check_ids(ids.split(','))) {
+                    clear_sheet();
+                    let average = 0, middle, cnt = 0;
+                    let temp = [];
+                    studentList.forEach(value => {
+                        if (ids.includes(value.id)) {
+                            average += value.total;
+                            temp.push(value);
+                            cnt++;
+                            let dom = $(`<tr><td>${value.id}</td><td>${value.name}</td><td>${value.klass}</td><td>${value.nation}</td><td>${value.chinese}</td><td>${value.math}</td><td>${value.english}</td><td>${value.program}</td></tr>`);
+                            let ddom = $(`<td><button type="button" class="btn btn-sm btn-info">删除</button></td>`);
+                            let cdom = $(`<td><button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#myModal3">
+    修改
+</button></td>`);
+                            ddom.click(function () {
+                                deleteStudentButton(dom);
+                            });
+                            cdom.click(function () {
+                                updateStudent(dom);
+                            });
+                            dom.append(cdom);
+                            dom.append(ddom);
+                            $('#score-sheet').append(dom);
+                        }
+                        temp.sort((a, b) => a.total - b.total);
+                        if (temp.length & 1) {
+                            middle = temp[Math.floor(temp.length / 2)].total;
+                        } else {
+                            middle = (temp[temp.length / 2].total + temp[temp.length / 2 - 1].total) / 2;
+                        }
+                    });
+                    $('#score-sheet').append(`<tr><td colspan="5">总分平均分:${(average / cnt).toFixed(2)}</td><td colspan="5">总分中位数:${middle.toFixed(2)}</td></tr>`)
+                } else {
+                    alert('请按正确的格式输入学号');
+                    return
+                }
+            }
+            $('#select_info .modal-footer button:first-child').click();
+        }
+
+        function deleteStudentButton(obj) {
+            let info = obj.html();
+            let info_arr = info.split('<td>').join('').split('</td>');
+            let name = info_arr[1];
+            let id = info_arr[0];
+            if (confirm(`确定删除
+${name}:${id}
+的成绩？`)) {
+                obj.remove();
+                studentList = studentList.filter(value => value.id !== id);
+                localStorage.list = JSON.stringify(studentList);
+                clear_sheet([id]);
+            }
+        }
+
+        function updateStudent(obj) {
+            let info = obj.html().split('<td>').join('').split('</td>');
+            let name = info[1];
+            let id = info[0];
+            let klass = info[2];
+            let nat = nation.indexOf(info[3]);
+            let chinese = +info[4];
+            let math = +info[5];
+            let english = +info[6];
+            let program = +info[7];
+            let form = $('#myModal3 :input');
+            let total = chinese + math + english + program;
+            $(form[1]).val(name);
+            $(form[2]).val(id);
+            $(form[3]).val(klass);
+            $(form[4]).val(nat);
+            $(form[5]).val(chinese);
+            $(form[6]).val(math);
+            $(form[7]).val(english);
+            $(form[8]).val(program);
+            student_need_update = {
+                name: name,
+                id: id,
+                klass: klass,
+                nation: nation[nat],
+                chinese: chinese,
+                math: math,
+                english: english,
+                program: program,
+                total: total,
+                average: Math.floor(total / 4),
+                dom: obj
+            };
+        }
+
+        function updateInfo() {
+            let name = $('#exampleUpdateName').val();
+            let id = $('#exampleUpdateId').val();
+            let klass = $('#exampleUpdateClass').val() === "" ? -1 : +$('#exampleUpdateClass').val();
+            let nat = nation[$('#exampleUpdateNation').val()];
+            let chinese = $('#exampleUpdateChinese').val() === "" ? -1 : +$('#exampleUpdateChinese').val();
+            let math = $('#exampleUpdateMath').val() === "" ? -1 : +$('#exampleUpdateMath').val();
+            let english = $('#exampleUpdateEnglish').val() === "" ? -1 : +$('#exampleUpdateEnglish').val();
+            let program = $('#exampleUpdateProgram').val() === "" ? -1 : +$('#exampleUpdateProgram').val();
+            if (name === "") {
+                alert('学生姓名不能为空');
+                $('#exampleUpdateName').focus();
+                return
+            }
+            if (check_id(id)) {
+                if (check_same_id_update(id)) {
+                    alert(`学生学号重复，请检查!`);
+                    $('#exampleUpdateId').focus();
+                    return
+                }
+            }
+            else {
+                alert(`学生学号输入错误：${id},请输入4位数字`);
+                $('#exampleUpdateId').focus();
+                return
+            }
+            if (chinese < 0 || chinese > 100) {
+                alert(`语文成绩输入错误，成绩应该是0-100之间`);
+                $('#exampleUpdateChinese').focus();
+                return;
+            }
+            if (math < 0 || math > 100) {
+                alert(`数学成绩输入错误，成绩应该是0-100之间`);
+                $('#exampleUpdateMath').focus();
+                return;
+            }
+            if (english < 0 || english > 100) {
+                alert(`英语成绩输入错误，成绩应该是0-100之间`);
+                $('#exampleUpdateEnglish').focus();
+                return;
+            }
+            if (program < 0 || program > 100) {
+                alert(`编程成绩输入错误，成绩应该是0-100之间`);
+                $('#exampleUpdateProgram').focus();
+                return;
+            }
+            $(student_need_update.dom).html(`<td>${id}</td><td>${name}</td><td>${klass}</td><td>${nat}</td><td>${chinese}</td><td>${math}</td><td>${english}</td><td>${program}</td>`);
+            let ddom = $(`<td><button type="button" class="btn btn-sm btn-info">删除</button></td>`);
+            let cdom = $(`<td><button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#myModal3">
+    修改
+</button></td>`);
+            ddom.click(function () {
+                deleteStudentButton(student_need_update.dom);
+            });
+            cdom.click(function () {
+                updateStudent(student_need_update.dom);
+            });
+            $(student_need_update.dom).append(cdom);
+            $(student_need_update.dom).append(ddom);
+
+            clear_sheet([]);
+
+            studentList=studentList.map((value,index,arr)=>{
+                return value.id===student_need_update.id?new Student(name,id,nat,klass,chinese,math,english,program):value;
+            });
+            localStorage.list=JSON.stringify(studentList);
+            student_need_update=null;
+            $('#change_info .modal-footer button:first-child').click();
+        };
+
+        function deleteStudent() {
+            let ids = $('#exampleDeleteId').val();
+            if (ids === "") {
+                if (confirm('确定删除全部学生信息？')) {
+                    clear_sheet();
+                    studentList.length = 0;
+                    localStorage.list = JSON.stringify(studentList);
+                }
+            } else if (check_ids(ids.split(','))) {
+                let temp_id_arr = ids.split(',');
+                let str = '';
+                for (let i = 0; i < studentList.length; i++) {
+                    if (temp_id_arr.includes(studentList[i].id)) {
+                        str += '\n' + studentList[i].name + '+' + studentList[i].id;
+                    }
+                }
+                if (confirm(`确定删除${str}
+的成绩吗？`)) {
+                    studentList = studentList.filter(value => !temp_id_arr.includes(value.id));
+                    localStorage.list = JSON.stringify(studentList);
+                    clear_sheet(temp_id_arr);
+                }
+            } else {
+                alert('请按正确的格式输入学号');
+            }
+            $('#delete_info .modal-footer button:first-child').click();
+        }
+    </script>
+    <script src="myjs.js"></script>
+</head>
+<body>
+<table id="score-sheet" class="table table-bordered table-hover score-sheet">
+    <caption class="sheet-title">学生成绩单</caption>
+    <tr class="sheet-head">
+        <td rowspan="2">学号</td>
+        <td rowspan="2">姓名</td>
+        <td rowspan="2">班级</td>
+        <td rowspan="2">民族</td>
+        <td colspan="4">成绩</td>
+        <td rowspan="2" colspan="2">操作</td>
+    </tr>
+    <tr>
+        <td>语文</td>
+        <td>数学</td>
+        <td>英语</td>
+        <td>编程</td>
+    </tr>
+</table>
+<!-- Button trigger modal -->
+<button type="button" class="btn btn-primary btn-lg add-student" data-toggle="modal" data-target="#myModal1">
+    添加学生成绩
+</button>
+<button type="button" class="btn btn-primary btn-lg select-student" data-toggle="modal" data-target="#myModal2">
+    查询学生成绩
+</button>
+<button type="button" class="btn btn-primary btn-lg update-student" data-toggle="modal" data-target="#myModal4">
+    删除学生信息
+</button>
+<!-- Modal -->
+<div class="modal fade" id="myModal1" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="student_info" action="">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel1">填写学生信息</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="exampleInputName">姓名</label>
+                        <input type="text" class="form-control" id="exampleInputName" placeholder="张三">
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleInputId">学号
+                            <small class="text-muted">（四位数字）</small>
+                        </label>
+                        <input type="text" class="form-control" id="exampleInputId" placeholder="0001">
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleInputClass">班级</label>
+                        <input type="text" class="form-control" id="exampleInputClass" placeholder="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleInputNation">民族</label>
+                        <select class="form-control" id="exampleInputNation">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleInputChinese">语文</label>
+                        <input type="text" class="form-control" id="exampleInputChinese" placeholder="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleInputMath">数学</label>
+                        <input type="text" class="form-control" id="exampleInputMath" placeholder="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleInputEnglish">英语</label>
+                        <input type="text" class="form-control" id="exampleInputEnglish" placeholder="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleInputProgram">编程</label>
+                        <input type="text" class="form-control" id="exampleInputProgram" placeholder="100">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="addStudent()">添加学生</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!--modal2-->
+<div class="modal fade" id="myModal2" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="select_info" action="">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel2">查询学生成绩</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="exampleSelectId">学号
+                            <small class="text-muted">（用逗号分割,如果为空则查询所有学生成绩）</small>
+                        </label>
+                        <input type="text" class="form-control" id="exampleSelectId" placeholder="0001">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="get_ids()">查询</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!--Modal3-->
+<div class="modal fade" id="myModal3" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="change_info" action="">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel5">修改学生信息</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="exampleUpdateName">姓名</label>
+                        <input type="text" class="form-control" id="exampleUpdateName" placeholder="张三">
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleUpdateId">学号
+                            <small class="text-muted">（四位数字）</small>
+                        </label>
+                        <input type="text" class="form-control" id="exampleUpdateId" placeholder="0001">
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleUpdateClass">班级</label>
+                        <input type="text" class="form-control" id="exampleUpdateClass" placeholder="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleUpdateNation">民族</label>
+                        <select class="form-control" id="exampleUpdateNation">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleUpdateChinese">语文</label>
+                        <input type="text" class="form-control" id="exampleUpdateChinese" placeholder="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleUpdateMath">数学</label>
+                        <input type="text" class="form-control" id="exampleUpdateMath" placeholder="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleUpdateEnglish">英语</label>
+                        <input type="text" class="form-control" id="exampleUpdateEnglish" placeholder="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleUpdateProgram">编程</label>
+                        <input type="text" class="form-control" id="exampleUpdateProgram" placeholder="100">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="updateInfo()">修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!--Modal4-->
+<div class="modal fade" id="myModal4" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="delete_info">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title" id="myModalLabel4">删除学生信息</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="exampleSelectId">学号
+                            <small class="text-muted">（用逗号分割,如果为空则删除所有学生信息）</small>
+                        </label>
+                        <input type="text" class="form-control" id="exampleDeleteId" placeholder="0001">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="deleteStudent()">删除学生</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
